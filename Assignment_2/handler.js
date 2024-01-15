@@ -31,6 +31,6 @@ exports.userAuth = async (event) => {
         }
     } catch (error) {
         console.error(error);
-        return { statusCode: 500, body: JSON.stringify({ error: 'Internal Server Error' }) };
+        return { statusCode: 500, body: JSON.stringify({ error: 'Server Error' }) };
     }
 };
