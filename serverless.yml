@@ -1,0 +1,105 @@
+service: mmas.userauth
+
+# custom:
+#   cognitoUserPoolId:  "CognitoUserPoolId"
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  region: us-west-1
+  stage: dev
+  environment:
+    EXTERNAL_SMS_ID: ${env:EXTERNAL_SMS_ID}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:Query
+      Resource: "arn:aws:dynamodb:*:*:table/UserTable"
+    - Effect: Allow
+      Action:
+        - cognito-idp:*
+        - sns:Publish
+      #because the cognito user pool is not created yet, the id could not be used here. In the second deploy the id is added in custom which is commented out now
+      Resource: "*" 
+
+functions:
+  userAuthFunction:
+    handler: handler.userLogin
+    environment:
+      DYNAMODB_TABLE: UserTable
+      COGNITO_USER_POOL_ID: { Ref: CognitoUserPool }
+      COGNITO_CLIENT_ID: { Ref: CognitoUserPoolClient }
+    events:
+      - http:
+          path: user/auth
+          method: post
+          cors: true
+
+resources:
+  Resources:
+    CognitoUserPool:
+      Type: "AWS::Cognito::UserPool"
+      Properties:
+        UserPoolName: MMAS_user_pool
+        Schema:
+          - Name: phone_number
+            Required: true
+            Mutable: false
+        AutoVerifiedAttributes:
+          - phone_number
+        MfaConfiguration: "OPTIONAL"
+        SmsConfiguration:
+          SnsCallerArn: { "Fn::GetAtt": ["SnsRole", "Arn"] }
+          #An external id for sms is assumed to exist.
+          ExternalId: ${self:provider.environment.EXTERNAL_SMS_ID}
+
+    CognitoUserPoolClient:
+      Type: "AWS::Cognito::UserPoolClient"
+      Properties:
+        UserPoolId: { Ref: CognitoUserPool }
+        ClientName: MMAS_user_pool_client
+        # Set to true if you need a client secret
+        GenerateSecret: true 
+
+    UserTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: UserTable
+        AttributeDefinitions:
+          - AttributeName: "UserId"
+            AttributeType: "S"
+        KeySchema:
+          - AttributeName: "UserId"
+            KeyType: "HASH"
+        BillingMode: PAY_PER_REQUEST
+
+    SnsRole:
+      Type: "AWS::IAM::Role"
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: "Allow"
+              Principal:
+                Service: "cognito-idp.amazonaws.com"
+              Action: "sts:AssumeRole"
+              Condition:
+                StringEquals:
+                  sts:ExternalId: ${self:provider.environment.EXTERNAL_SMS_ID}
+        Policies:
+          - PolicyName: "CognitoSNSPolicy"
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: "Allow"
+                  Action: "sns:Publish"
+                  Resource: { "Ref": "TwoFactorAuthSNSTopic" }
+   
+    TwoFactorAuthSNSTopic:
+        Type: "AWS::SNS::Topic"
+        Properties:
+          TopicName: "TwoFactorAuthTopic"
+
+plugins:
+  - serverless-dotenv-plugin

@@ -1,0 +1,22 @@
+{
+  "name": "mmas_oaslan",
+  "version": "1.0.0",
+  "description": "User authenticaion of Manual Metadata",
+  "main": "handler.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ozguraslanleo/mmas_0aslan.git"
+  },
+  "author": "Ozgur aslan",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ozguraslanleo/mmas_0aslan/issues"
+  },
+  "homepage": "https://github.com/ozguraslanleo/mmas_0aslan#readme",
+  "dependencies": {
+    "aws-sdk": "^2.1536.0"
+  },
+  "devDependencies": {
+    "serverless-dotenv-plugin": "^6.0.0"
+  }
+}
