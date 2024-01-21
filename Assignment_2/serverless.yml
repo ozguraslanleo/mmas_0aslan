@@ -25,7 +25,7 @@ provider:
 
 functions:
   userAuthFunction:
-    handler: handler.userLogin
+    handler: handler.userAuth
     environment:
       DYNAMODB_TABLE: UserTable
       COGNITO_USER_POOL_ID: { Ref: CognitoUserPool }
@@ -59,8 +59,6 @@ resources:
       Properties:
         UserPoolId: { Ref: CognitoUserPool }
         ClientName: MMAS_user_pool_client
-        # Set to true if you need a client secret
-        GenerateSecret: true 
 
     UserTable:
       Type: AWS::DynamoDB::Table
